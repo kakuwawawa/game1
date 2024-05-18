@@ -1,0 +1,35 @@
+/* styles.css */
+body {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    height: 100vh;
+    margin: 0;
+    background-color: #87ceeb;
+}
+
+canvas {
+    border: 1px solid #000;
+}
+
+#controls {
+    display: flex;
+    flex-wrap: wrap;
+    margin-top: 10px;
+}
+
+button {
+    font-size: 20px;
+    margin: 5px;
+    padding: 10px;
+}
+
+#inventory {
+    margin-top: 20px;
+}
+
+#inventoryItems {
+    display: flex;
+    flex-wrap: wrap;
+}
