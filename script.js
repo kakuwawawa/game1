@@ -1,169 +1,135 @@
-// script.js
-const canvas = document.getElementById('gameCanvas');
-const ctx = canvas.getContext('2d');
+document.addEventListener('DOMContentLoaded', () => {
+    const canvas = document.getElementById('canvas');
+    const ctx = canvas.getContext('2d');
+    canvas.width = window.innerWidth * 0.8;
+    canvas.height = window.innerHeight * 0.8;
 
-const TILE_SIZE = 40;
-const ROWS = canvas.height / TILE_SIZE;
-const COLS = canvas.width / TILE_SIZE;
-const blocks = [];
-const items = [];
-const inventory = {
-    dirt: 0,
-    wood: 0,
-};
+    let boxes = [];
+    let lines = [];
+    let selectedBox = null;
+    let isAddingBox = false;
+    let isRemovingBox = false;
 
-for (let row = 0; row < ROWS; row++) {
-    const rowBlocks = [];
-    for (let col = 0; col < COLS; col++) {
-        rowBlocks.push(null);
-    }
-    blocks.push(rowBlocks);
-}
+    document.getElementById('addBoxButton').addEventListener('click', () => {
+        isAddingBox = true;
+        isRemovingBox = false;
+    });
 
-let player = { x: 1, y: 1, hp: 10 };
-let enemies = [{ x: 5, y: 5, hp: 3 }];
+    document.getElementById('removeBoxButton').addEventListener('click', () => {
+        isRemovingBox = true;
+        isAddingBox = false;
+    });
 
-document.getElementById('moveLeft').addEventListener('click', () => movePlayer(-1, 0));
-document.getElementById('moveRight').addEventListener('click', () => movePlayer(1, 0));
-document.getElementById('moveUp').addEventListener('click', () => movePlayer(0, -1));
-document.getElementById('moveDown').addEventListener('click', () => movePlayer(0, 1));
-document.getElementById('placeBlock').addEventListener('click', () => placeBlock());
-document.getElementById('removeBlock').addEventListener('click', () => removeBlock());
-document.getElementById('craftItem').addEventListener('click', () => craftItem());
+    canvas.addEventListener('click', (e) => {
+        const rect = canvas.getBoundingClientRect();
+        const x = e.clientX - rect.left;
+        const y = e.clientY - rect.top;
 
-function movePlayer(dx, dy) {
-    const newX = player.x + dx;
-    const newY = player.y + dy;
-    if (newX >= 0 && newX < COLS && newY >= 0 && newY < ROWS) {
-        player.x = newX;
-        player.y = newY;
-    }
-    pickUpItems();
-    draw();
-}
-
-function placeBlock() {
-    const { x, y } = player;
-    if (!blocks[y][x] && inventory.dirt > 0) {
-        blocks[y][x] = 'dirt';
-        inventory.dirt--;
-    }
-    updateInventory();
-    draw();
-}
-
-function removeBlock() {
-    const { x, y } = player;
-    if (blocks[y][x]) {
-        dropItem(x, y, blocks[y][x]);
-        blocks[y][x] = null;
-    }
-    draw();
-}
-
-function draw() {
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
-
-    for (let row = 0; row < ROWS; row++) {
-        for (let col = 0; col < COLS; col++) {
-            if (blocks[row][col]) {
-                ctx.fillStyle = 'brown';
-                ctx.fillRect(col * TILE_SIZE, row * TILE_SIZE, TILE_SIZE, TILE_SIZE);
-            }
-            ctx.strokeStyle = 'lightgray';
-            ctx.strokeRect(col * TILE_SIZE, row * TILE_SIZE, TILE_SIZE, TILE_SIZE);
+        if (isAddingBox) {
+            addBox(x, y);
+            isAddingBox = false;
+        } else if (isRemovingBox) {
+            removeBox(x, y);
+            isRemovingBox = false;
+        } else {
+            selectBox(x, y);
         }
-    }
 
-    // プレイヤーの描画
-    ctx.fillStyle = 'blue';
-    ctx.fillRect(player.x * TILE_SIZE, player.y * TILE_SIZE, TILE_SIZE, TILE_SIZE);
-
-    // 敵の描画
-    ctx.fillStyle = 'red';
-    enemies.forEach(enemy => {
-        ctx.fillRect(enemy.x * TILE_SIZE, enemy.y * TILE_SIZE, TILE_SIZE, TILE_SIZE);
+        draw();
     });
 
-    // アイテムの描画
-    items.forEach(item => {
-        ctx.fillStyle = item.type === 'dirt' ? 'brown' : 'green';
-        ctx.fillRect(item.x * TILE_SIZE, item.y * TILE_SIZE, TILE_SIZE, TILE_SIZE);
-    });
-}
-
-function gameLoop() {
-    moveEnemies();
-    checkCollisions();
-    draw();
-    requestAnimationFrame(gameLoop);
-}
-
-function moveEnemies() {
-    enemies.forEach(enemy => {
-        const direction = Math.floor(Math.random() * 4);
-        let dx = 0, dy = 0;
-        if (direction === 0) dx = -1;
-        if (direction === 1) dx = 1;
-        if (direction === 2) dy = -1;
-        if (direction === 3) dy = 1;
-        const newX = enemy.x + dx;
-        const newY = enemy.y + dy;
-        if (newX >= 0 && newX < COLS && newY >= 0 && newY < ROWS && !blocks[newY][newX]) {
-            enemy.x = newX;
-            enemy.y = newY;
+    const addBox = (x, y) => {
+        const name = prompt("箱の名前を入力してください:");
+        if (name) {
+            boxes.push({ x, y, name });
         }
-    });
-}
+    };
 
-function checkCollisions() {
-    enemies.forEach(enemy => {
-        if (enemy.x === player.x && enemy.y === player.y) {
-            player.hp -= 1;
-            if (player.hp <= 0) {
-                alert('ゲームオーバー');
-                player.hp = 10;
-                player.x = 1;
-                player.y = 1;
+    const removeBox = (x, y) => {
+        boxes = boxes.filter(box => !isPointInBox(x, y, box));
+        lines = lines.filter(line => !isPointInBox(x, y, line.start) && !isPointInBox(x, y, line.end));
+    };
+
+    const selectBox = (x, y) => {
+        for (const box of boxes) {
+            if (isPointInBox(x, y, box)) {
+                if (selectedBox) {
+                    lines.push({ start: selectedBox, end: box });
+                    selectedBox = null;
+                } else {
+                    selectedBox = box;
+                }
+                break;
             }
         }
-    });
-}
+    };
 
-function dropItem(x, y, type) {
-    items.push({ x, y, type });
-}
+    const isPointInBox = (x, y, box) => {
+        return x >= box.x - 20 && x <= box.x + 20 && y >= box.y - 20 && y <= box.y + 20;
+    };
 
-function pickUpItems() {
-    items.forEach((item, index) => {
-        if (item.x === player.x && item.y === player.y) {
-            inventory[item.type]++;
-            items.splice(index, 1);
-            updateInventory();
+    const draw = () => {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+        // 線を描く
+        ctx.beginPath();
+        for (const line of lines) {
+            ctx.moveTo(line.start.x, line.start.y);
+            ctx.lineTo(line.end.x, line.end.y);
         }
-    });
-}
+        ctx.stroke();
 
-function updateInventory() {
-    const inventoryItems = document.getElementById('inventoryItems');
-    inventoryItems.innerHTML = '';
-    for (const [item, count] of Object.entries(inventory)) {
-        const itemDiv = document.createElement('div');
-        itemDiv.textContent = `${item}: ${count}`;
-        inventoryItems.appendChild(itemDiv);
-    }
-}
+        // 箱を描く
+        for (const box of boxes) {
+            ctx.beginPath();
+            ctx.rect(box.x - 20, box.y - 20, 40, 40);
+            ctx.fillStyle = 'white';
+            ctx.fill();
+            ctx.stroke();
+            ctx.fillStyle = 'black';
+            ctx.fillText(box.name, box.x - 10, box.y + 5);
+        }
 
-function craftItem() {
-    if (inventory.dirt >= 2) {
-        inventory.dirt -= 2;
-        inventory.wood += 1;
-        updateInventory();
-    } else {
-        alert('材料が足りません');
-    }
-}
+        // 正多角形を描く
+        drawPolygon();
+    };
 
-draw();
-updateInventory();
-gameLoop();
+    const drawPolygon = () => {
+        const polygonPoints = [];
+
+        for (const line of lines) {
+            const startIndex = polygonPoints.indexOf(line.start);
+            const endIndex = polygonPoints.indexOf(line.end);
+
+            if (startIndex === -1 && endIndex === -1) {
+                polygonPoints.push(line.start, line.end);
+            } else if (startIndex === -1) {
+                polygonPoints.splice(endIndex + 1, 0, line.start);
+            } else if (endIndex === -1) {
+                polygonPoints.splice(startIndex + 1, 0, line.end);
+            }
+        }
+
+        if (polygonPoints.length > 2 && polygonPoints[0] === polygonPoints[polygonPoints.length - 1]) {
+            polygonPoints.pop();
+            const n = polygonPoints.length;
+            const angleStep = (2 * Math.PI) / n;
+            const radius = 50;
+
+            ctx.beginPath();
+            for (let i = 0; i < n; i++) {
+                const x = polygonPoints[0].x + radius * Math.cos(i * angleStep);
+                const y = polygonPoints[0].y + radius * Math.sin(i * angleStep);
+                if (i === 0) {
+                    ctx.moveTo(x, y);
+                } else {
+                    ctx.lineTo(x, y);
+                }
+            }
+            ctx.closePath();
+            ctx.stroke();
+        }
+    };
+
+    draw();
+});
