@@ -1,35 +1,21 @@
-/* styles.css */
 body {
+    font-family: Arial, sans-serif;
     display: flex;
     flex-direction: column;
     align-items: center;
-    justify-content: center;
-    height: 100vh;
     margin: 0;
-    background-color: #87ceeb;
-}
-
-canvas {
-    border: 1px solid #000;
+    padding: 0;
 }
 
 #controls {
-    display: flex;
-    flex-wrap: wrap;
-    margin-top: 10px;
+    margin: 20px;
 }
 
-button {
-    font-size: 20px;
-    margin: 5px;
-    padding: 10px;
+#canvasContainer {
+    position: relative;
 }
 
-#inventory {
-    margin-top: 20px;
-}
-
-#inventoryItems {
-    display: flex;
-    flex-wrap: wrap;
+#canvas {
+    border: 1px solid #ccc;
+    touch-action: none; /* タッチ操作が適切に反応するように */
 }
